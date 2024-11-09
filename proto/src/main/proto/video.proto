@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package video;
+
+option java_multiple_files = true;
+option java_package = "com.quang.proto";
+option java_outer_classname = "VideoServiceProto";
+
+service VideoService {
+  rpc Upload(stream VideoChunk) returns (UploadStatus);
+  rpc Watch(VideoRequest) returns (stream VideoChunk);
+}
+
+message VideoChunk {
+  bytes content = 1;
+  string fileName = 2;
+  int64 size = 3;
+  int64 sequenceNumber = 4;
+  bool isLastChunk = 5;
+}
+
+message UploadStatus {
+  bool success = 1;
+  string message = 2;
+}
+
+message VideoRequest {
+  string fileName = 1;
+}

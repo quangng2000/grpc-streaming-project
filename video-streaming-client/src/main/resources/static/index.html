@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Streaming Client</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background: #f0f2f5;
+            color: #333;
+        }
+
+        h1, h2 {
+            color: #444;
+        }
+
+        .container {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        #uploadForm, #watchForm {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        input[type="file"], input[type="text"] {
+            padding: 8px;
+            width: calc(100% - 16px);
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        button:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+
+        #uploadLoading, #loading {
+            display: none;
+            color: #007bff;
+            font-size: 1em;
+            margin-top: 10px;
+        }
+
+        #uploadResult, #watchResult {
+            margin-top: 15px;
+            font-size: 1em;
+        }
+
+        #videoContainer {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        video {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            margin-top: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Add subtle animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 1s ease-in-out;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container fade-in">
+    <h1>Video Streaming Client</h1>
+
+    <!-- Video Upload Section -->
+    <h2>Upload Video</h2>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <label for="videoFile">Select Video:</label>
+        <input type="file" id="videoFile" name="videoFile" accept="video/mp4">
+        <button type="button" onclick="uploadVideo()">Upload</button>
+    </form>
+
+    <div id="uploadLoading">Uploading video, please wait...</div>
+    <div id="uploadResult"></div>
+
+    <!-- Watch Video Section -->
+    <h2>Watch Video</h2>
+    <form id="watchForm">
+        <label for="videoName">Enter Video File Name (including extension):</label>
+        <input type="text" id="videoName">
+        <button type="button" onclick="watchVideo()">Watch</button>
+    </form>
+
+    <div id="loading">Loading video, please wait...</div>
+    <div id="videoContainer"></div>
+</div>
+
+<!-- JavaScript Section -->
+<script>
+        function uploadVideo() {
+            const videoFile = document.getElementById("videoFile").files[0];
+            if (!videoFile) {
+                alert("Please select a video file to upload.");
+                return;
+            }
+
+            // Show upload loading indicator and disable button
+            const uploadLoading = document.getElementById("uploadLoading");
+            uploadLoading.style.display = "block";
+            const uploadButton = document.querySelector("#uploadForm button");
+            uploadButton.disabled = true;
+
+            const formData = new FormData();
+            formData.append("file", videoFile);
+
+            fetch('/api/client/videos/upload', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Upload failed with status " + response.status);
+                    }
+                    return response.text();
+                })
+                .then(result => {
+                    document.getElementById("uploadResult").innerText = result;
+                })
+                .catch(error => {
+                    document.getElementById("uploadResult").innerText = "Error: " + error.message;
+                })
+                .finally(() => {
+                    // Hide loading indicator and re-enable button
+                    uploadLoading.style.display = "none";
+                    uploadButton.disabled = false;
+                });
+        }
+
+        function watchVideo() {
+            const videoName = document.getElementById("videoName").value.trim();
+            if (!videoName) {
+                alert("Please enter a video file name to watch.");
+                return;
+            }
+
+            // Show loading indicator
+            const loadingIndicator = document.getElementById("loading");
+            loadingIndicator.style.display = "block";
+
+            const videoContainer = document.getElementById("videoContainer");
+            videoContainer.innerHTML = `<video controls class="fade-in">
+                <source src="/api/client/videos/watch/${videoName}" type="video/mp4" onerror="handleVideoError()">
+                Your browser does not support the video tag.
+            </video>`;
+
+            // Hide loading indicator once video is ready to play
+            const videoElement = videoContainer.querySelector("video");
+            videoElement.addEventListener("loadeddata", () => {
+                loadingIndicator.style.display = "none";
+            });
+
+            videoElement.addEventListener("error", () => {
+                loadingIndicator.style.display = "none";
+                document.getElementById("uploadResult").innerText = "Error: Video not found or could not be loaded.";
+            });
+        }
+
+        function handleVideoError() {
+            alert("Failed to load the video. Please check the file name and try again.");
+        }
+    </script>
+</body>
+
+</html>
